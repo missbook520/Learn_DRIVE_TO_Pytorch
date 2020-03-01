@@ -1,0 +1,35 @@
+此文件夹为分类FASHION_MNIST数据集的代码文件
+train.py为训练代码
+optimizer.py 内实现了Lookahead Optimizer（因为没搞懂代码实现，没有用上）
+transform为随机擦除代码
+inference.py 为使用模型进行推理代码，生成提交文件
+Baseline参考 https://github.com/monkeyDemon/Learn_Dive-into-DL-PyTorch
+
+运行Baseline代码时整个测试集准确率为0.942左右
+
+Baseline：
+采用通道数减半、残差块卷积层（2层）的Resnet结构；
+利用SGD优化算法，学习率为0.01，没有采用学习率调整措施；
+训练时数据增强：RandomCrop(28, padding=2)
+               RandomHorizontalFlip()
+               Normalize(mean=[mean], std=[std])
+
+
+改进：
+模型结构方面：
+一开始使用的是Densenet模型结构，通道数减半，其余不变，对提升效果不大，在Baseline准确率上下浮动0.002;
+后面使用WideResnet结构，将残差网络的宽度提升，但训练速度太慢（笔记本显卡为英伟达960），放弃了，如果训练完应该效果要比Resnet以及Densenet效果要好
+最终采用Resnet 32depth结构，不知道是不是图片太小的缘故，容易过拟合，用Densenet复杂的模型效果反而不是那么好
+
+数据增强：
+将RandomCrop(28, padding=2)改为RandomCrop(28, padding=4)
+使用transforms.RandomHorizontalFlip(),
+使用transforms.RandomErasing(probability=0.5, sh=0.4, r1=0.3, mean=[0.4914])，用随机擦除来增强数据
+
+学习率方面：
+一直采用一个学习率不利于后续网络模型的参数学习，因此采用lr_scheduler.MultiStepLR(optimizer,[7,15,23],0.2)才分阶段调整学习率
+开始时采用lr_scheduler.CosineAnnealingLR(optimizer, 5, 1e-6)来进行调整，但是准确率没有什么提升
+后续加入了Warmup，预热学习率，一开始以小的学习率进行优化，先找准正确的方向
+
+
+最终准确率为0.9525，应该再加上TTA（测试时数据增强），或许还能涨一个百分点
